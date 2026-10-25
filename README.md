@@ -202,6 +202,106 @@ from one copy to the next, but it slowly gets softer.
 
 ---
 
+## Why does it sound like a plucked string?
+
+The algorithm copies, in a very simplified way, the **three physical things
+that happen when you pluck a string**. Other instruments behave differently in
+at least one of them.
+
+### 1. The attack is short and noisy, and then nothing more is added
+
+A pluck is one short, chaotic burst of energy: the pick or finger snaps off the
+string. After that, **nobody adds any more energy**. The string just rings out
+on its own.
+
+In the code:
+- The **random noise** in the buffer is the snap of the pluck, with every
+  frequency at once.
+- **Nothing ever adds energy afterwards**, so the sound can only fade.
+
+Compare other instruments:
+- **Violin:** the bow keeps feeding energy, so the note can last as long as the
+  player wants.
+- **Flute, trumpet:** the player's breath keeps feeding energy, so the note is
+  steady.
+- **Organ:** air keeps flowing, so the note never fades on its own.
+
+So an attack followed by a free decay already rules out all sustained
+instruments.
+
+### 2. Harmonics at whole-number multiples, like a string
+
+Because the buffer repeats every `n` samples, the sound only contains
+frequencies that fit the loop exactly: 441 Hz, 882 Hz, 1323 Hz, and so on
+(1×, 2×, 3× the fundamental).
+
+A real string vibrates the same way: as a whole, in halves, in thirds, and so
+on. That set of whole-number harmonics is what makes it sound like a **tuned
+string**, not like a bell, cymbal or drum. Those have irregular frequencies
+that don't follow 1×, 2×, 3×.
+
+The **drum variant** (see [Settings to try](#settings-to-try)) breaks the clean
+repetition by randomly flipping signs. Same code, one change, and it sounds
+like a drum.
+
+### 3. High frequencies fade faster than low ones
+
+This is the most important part. On a real string, the high harmonics lose
+energy quickly (to air friction and the stiffness of the string), while the
+fundamental keeps ringing much longer. A pluck therefore sounds **bright at the
+start and mellow at the end**.
+
+The averaging step does exactly this:
+
+```go
+buf[idx] = decay * 0.5 * (buf[idx] + buf[next])
+```
+
+Averaging neighbours smooths out fast wiggles (high frequencies) much more than
+slow waves (low frequencies). On every pass:
+- the high harmonics shrink a lot,
+- the low harmonics barely change.
+
+That's the "bright twang → warm ring → fade" you hear, and your brain
+recognises it immediately as a plucked string.
+
+### Summary
+
+| Physical feature        | Plucked string                       | Code                                  |
+|-------------------------|--------------------------------------|---------------------------------------|
+| Sharp noisy attack      | pick snaps the string                | random noise in the buffer            |
+| No added energy         | string rings freely                  | nothing refills the buffer            |
+| Whole-number harmonics  | string vibrates in halves, thirds…   | buffer repeats every `n` samples      |
+| Highs die out first     | air friction, string stiffness       | averaging neighbours (low-pass)       |
+| Overall fade            | energy loss                          | `decay`                               |
+
+### Honestly: it's a generic plucked string, not exactly a guitar
+
+The basic algorithm sounds somewhere between a **harpsichord, harp,
+nylon-string guitar and banjo**. It doesn't sound specifically like a guitar,
+because a real guitar also has:
+
+- **A wooden body** that resonates and colours the sound (the biggest missing
+  piece)
+- **The pick position**: plucking near the bridge sounds bright and thin, near
+  the neck sounds round
+- **The string vibrating in two directions** (up/down and side to side), which
+  makes the decay richer
+- **String stiffness**, which pushes the higher harmonics slightly out of tune
+
+### Ways to make it sound more like a guitar
+
+1. **Add a body filter:** run the output through a few resonant filters around
+   100 to 250 Hz to imitate the wooden box.
+2. **Imitate the pick position:** subtract a delayed copy of the starting noise
+   (a comb filter), so some harmonics are removed, as with a real pluck.
+3. **Make the pluck softer:** smooth the starting noise a bit to sound like a
+   finger instead of a pick.
+4. **Add slight detuning:** run two strings at nearly the same pitch, which
+   sounds like the two vibration directions or a 12-string chorus.
+
+---
+
 ## Code walkthrough
 
 The whole algorithm lives in `KarplusStrong` in [main.go](main.go):
