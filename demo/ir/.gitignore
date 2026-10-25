@@ -1,0 +1,4 @@
+# Impulse response WAV files are downloaded separately (see synth-tutorial.md, Step 6).
+# Ignore everything in this folder except this file, so git keeps the folder.
+*
+!.gitignore

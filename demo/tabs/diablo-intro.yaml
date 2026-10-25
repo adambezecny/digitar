@@ -1,0 +1,60 @@
+title: Tristram (first two measures)
+artist: Matt Uelmen
+tracks:
+  acoustic:
+    instrument:
+      tuning: [E2, A2, D3, G3, B3, E4]
+      vibration: 10
+      damping: 0.498
+      effects:
+      - Reverb
+      - Convolution:
+          impulse_response_filename: ../ir/acoustic.wav
+          mix: 0.95
+      - LowShelfFilter:
+          cutoff_frequency_hz: 440
+          gain_db: 10
+          q: 1
+      - Gain:
+          gain_db: 6
+    tablature:
+      beats_per_minute: 75
+      measures:
+      - time_signature: 4/4
+        notes:
+        - frets: &am [0, 0, 2, 2, 0, ~]
+          arpeggio: 0.04
+        - frets: [~, 0, 2, ~, ~, ~]
+          offset: 3/16
+          upstroke: true
+          arpeggio: 0.02
+        - frets: *am
+          offset: 1/8
+          arpeggio: 0.04
+      - time_signature: 4/4
+        notes:
+        - frets: &e [0, 4, 2, 1, 0, ~]
+          arpeggio: 0.04
+        - frets: [~, ~, 2, ~, ~, ~]
+          offset: 3/16
+        - frets: *e
+          offset: 1/8
+          arpeggio: 0.04
+        - frets: [7, ~, ~, ~, ~, ~]
+          offset: 7/16
+  bass:
+    weight: 0.6
+    instrument:
+      tuning: [E1, A1, D2, G2]
+      vibration: 10
+      damping: 0.4965
+    tablature:
+      beats_per_minute: 75
+      measures:
+      - time_signature: 4/4
+        notes: &bass
+        - frets: [~, ~, 0, ~]
+        - frets: [~, ~, 0, ~]
+          offset: 1/2
+      - time_signature: 4/4
+        notes: *bass
