@@ -103,6 +103,103 @@ repeats 441 times per second. You hear roughly the note A4.
 The random noise sets the tone colour, which is why it sounds like a string and
 not a flute. The **loop length sets the pitch**.
 
+### What actually repeats?
+
+**The wave shape stored in the buffer repeats.** After the "pluck", the buffer
+holds 100 random values. The loop reads them from start to end, wraps around
+and reads the buffer again, so the speaker receives roughly the same jagged
+shape every 100 samples:
+
+```
+ one cycle (100 samples)      next cycle               next cycle
+|  /\    /\/\   _/\         |  /\    /\/\   _/\         |  /\    /\/\   _/\
+| /  \/\/    \_/   \/\      | /  \/\/    \_/   \/\      | /  \/\/    \_/   \/\
+ ◄──── 2.27 ms ────►
+```
+
+Your ear doesn't need a smooth sine wave to hear a note. **Any shape that
+repeats regularly is heard as a pitch**:
+
+- **How often it repeats** (441 times per second) sets the **pitch**.
+- **The shape of one cycle** sets the **timbre**, the character of the sound.
+  That's why a violin and a guitar playing the same A4 still sound different.
+
+On a real guitar, the "pattern" is the shape of the bent string travelling to
+the bridge and back. The buffer is that round trip: **one trip along the string
+and back.**
+
+### But aren't the values being smoothed?
+
+Yes. The loop visits the **same slots** over and over, but the **values** in
+those slots change on every visit:
+
+```go
+out[i] = buf[idx]                                // 1. read the current value
+buf[idx] = decay * 0.5 * (buf[idx] + buf[next])  // 2. overwrite it with a smoothed value
+```
+
+One cycle later the loop comes back to this slot and reads the **smoothed**
+value, not the original one.
+
+#### Tiny example
+
+Here is a buffer of **4 slots** (instead of 100), with `decay` ignored:
+
+```
+buf = [ 1.0, -1.0,  0.6, -0.2 ]
+```
+
+**Cycle 1** outputs each value, then replaces it with the average of itself and
+its right neighbour:
+
+| i | slot | output   | new value                 |
+|---|------|----------|---------------------------|
+| 0 | 0    | **1.0**  | (1.0 + -1.0)/2 = **0.0**  |
+| 1 | 1    | **-1.0** | (-1.0 + 0.6)/2 = **-0.2** |
+| 2 | 2    | **0.6**  | (0.6 + -0.2)/2 = **0.2**  |
+| 3 | 3    | **-0.2** | (-0.2 + 0.0)/2 = **-0.1** |
+
+Slot 3's neighbour is slot 0, which was already updated to 0.0.
+The buffer is now `[ 0.0, -0.2, 0.2, -0.1 ]`.
+
+**Cycle 2** reads these new values:
+
+| i | slot | output   | new value                  |
+|---|------|----------|----------------------------|
+| 4 | 0    | **0.0**  | (0.0 + -0.2)/2 = **-0.1**  |
+| 5 | 1    | **-0.2** | (-0.2 + 0.2)/2 = **0.0**   |
+| 6 | 2    | **0.2**  | (0.2 + -0.1)/2 = **0.05**  |
+| 7 | 3    | **-0.1** | (-0.1 + -0.1)/2 = **-0.1** |
+
+```
+cycle 1:  1.0  -1.0   0.6  -0.2     ← wild jumps
+cycle 2:  0.0  -0.2   0.2  -0.1     ← smaller, smoother
+cycle 3:  ...                        ← smaller still
+```
+
+#### Pitch and smoothing happen at the same time
+
+- **The cycle length** never changes. It's always `n` slots, so the shape comes
+  around again every `n` samples. That timing gives the **pitch**.
+- **The values** change a little per cycle, so the shape slowly smooths out and
+  fades. That gives the "pluck → ring → fade" character:
+
+```
+cycle 1:    /\/\/\_/\/\_/\/   jagged, loud   → bright "twang"
+cycle 10:   /‾\_/‾‾\__/‾\_    smoother       → warmer
+cycle 100:  /‾‾‾\___/‾‾‾\__   almost a sine  → mellow
+cycle 500:  ‾‾‾‾‾‾‾‾‾‾‾‾‾‾   almost flat    → silence
+```
+
+In the 4-slot toy example the smoothing looks dramatic. With a real 100-slot
+buffer, each slot is averaged with very similar neighbours, so **one cycle looks
+almost exactly like the previous one**. Your ear hears a steady 441 Hz pitch
+whose tone gets gradually softer.
+
+A good way to think about it: **each cycle is a slightly blurred copy of the
+previous one**, like photocopying a photocopy. The picture stays recognizable
+from one copy to the next, but it slowly gets softer.
+
 ---
 
 ## Code walkthrough
