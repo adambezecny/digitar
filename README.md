@@ -231,18 +231,213 @@ instruments.
 
 ### 2. Harmonics at whole-number multiples, like a string
 
-Because the buffer repeats every `n` samples, the sound only contains
-frequencies that fit the loop exactly: 441 Hz, 882 Hz, 1323 Hz, and so on
-(1×, 2×, 3× the fundamental).
+**In short:** a string (because its ends are clamped) and the code (because its
+loop has a fixed length) can only vibrate at 1×, 2×, 3×… the base frequency.
+These frequencies line up into one clear note, which is the sound of a string.
+The rest of this section explains why.
 
-A real string vibrates the same way: as a whole, in halves, in thirds, and so
-on. That set of whole-number harmonics is what makes it sound like a **tuned
-string**, not like a bell, cymbal or drum. Those have irregular frequencies
-that don't follow 1×, 2×, 3×.
+#### What a harmonic is
 
-The **drum variant** (see [Settings to try](#settings-to-try)) breaks the clean
-repetition by randomly flipping signs. Same code, one change, and it sounds
-like a drum.
+When you pluck a string, it doesn't vibrate in just one way. **It vibrates in
+several patterns at once**, stacked on top of each other.
+
+Take the guitar's A string, tuned to **110 Hz**. Both ends are fixed (at the
+nut and the bridge), so **every vibration pattern has to keep both ends
+still**. Only these patterns fit:
+
+```
+1st harmonic (whole string swings)       110 Hz   = 1 × 110
+nut |‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾| bridge
+    |________________________________|
+
+2nd harmonic (two halves swing)          220 Hz   = 2 × 110
+    |‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾\________________|
+    |________________/‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾|
+
+3rd harmonic (three thirds swing)        330 Hz   = 3 × 110
+    |‾‾‾‾‾‾‾‾‾‾\__________/‾‾‾‾‾‾‾‾‾‾|
+    |__________/‾‾‾‾‾‾‾‾‾‾\__________|
+
+4th harmonic (four quarters)             440 Hz   = 4 × 110
+...and so on: 550, 660, 770 Hz...
+```
+
+A pattern of "one and a half bumps" is impossible, because one end would have
+to move, and it's clamped. So **the string can only produce 1×, 2×, 3×, 4×…
+the base frequency**. These are the whole-number multiples.
+
+You hear all of them **together as a single note**, A at 110 Hz. The mix of
+how loud each harmonic is gives the string its tone.
+
+#### "Two halves swing" doesn't mean only half of the string vibrates
+
+**The whole string is vibrating**, but it moves in two sections that swing in
+**opposite directions** at the same time, like a seesaw. The point in the
+middle doesn't move at all. That still point is called a **node**.
+
+```
+moment 1:   |‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾•________________|
+moment 2:   |________________•‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾|
+            nut            node             bridge
+                      (stays still)
+```
+
+The 3rd harmonic has two nodes and three sections, the 4th has three nodes and
+four sections, and so on.
+
+A plucked string does **all of these patterns at once**, added together. In
+slow motion you'd see one complicated, wobbly shape: the sum of the
+whole-string swing, the two-halves swing, the three-thirds swing, and so on.
+
+#### Why half the length means twice the frequency
+
+When you pluck a string, the bend you made **travels along the string** like a
+ripple, bounces off the end, and comes back. The ripple's speed depends only on
+the string's **tension** and **thickness/weight**, not on its length.
+
+One full vibration is the time the ripple needs to travel **to the far end and
+back**:
+
+```
+time of one vibration = round-trip distance ÷ speed
+frequency             = how many round trips per second
+```
+
+With real numbers: a guitar string is about **65 cm** long, and on the A string
+the ripple travels at about **143 m/s**.
+
+| Vibrating section            | Round trip         | Time per trip | Frequency   |
+|------------------------------|--------------------|---------------|-------------|
+| Whole string (65 cm)         | 2 × 65 cm = 1.30 m | ≈ 9.1 ms      | **110 Hz**  |
+| Half the string (32.5 cm)    | 2 × 32.5 cm = 0.65 m | ≈ 4.5 ms    | **220 Hz**  |
+
+**Same speed, half the distance, so half the time per trip and twice as many
+trips per second.** It's like a runner going back and forth on a track: shorten
+the track to half its length and they complete twice as many laps per minute
+without running any faster.
+
+Frets use the same idea. Pressing a fret makes the vibrating part shorter, so
+the note goes up:
+
+| Where you press    | Vibrating length | Note                       |
+|--------------------|------------------|----------------------------|
+| open string        | 65 cm            | A, 110 Hz                  |
+| 5th fret           | ~48.7 cm (¾)     | D, ~147 Hz                 |
+| 12th fret (middle) | 32.5 cm (half)   | A, 220 Hz, one octave up   |
+
+#### Try it on a guitar: natural harmonics
+
+1. Pluck the open A string normally. You hear 110 Hz plus all its harmonics.
+2. Now **lightly touch** (don't press) the string exactly above the **12th
+   fret**, which is the middle of the string, then pluck it and lift your
+   finger.
+
+Your finger forces the middle to stand still. That **kills the 1st harmonic**,
+because the 1st harmonic needs the middle to move the most. The 2nd harmonic
+survives because its node is already in the middle, so you hear a clear,
+bell-like note **one octave higher** (220 Hz).
+
+Touching above the **7th fret** (one third of the way along) leaves the 3rd
+harmonic, and above the **5th fret** (one quarter) leaves the 4th.
+
+#### Why the code does the same
+
+The code has no physical string. It has a buffer that **repeats every `n`
+samples**, and that rule works just like the clamped ends.
+
+Think of the sound as made of simple sine waves. Which sine waves can be part
+of a shape that repeats exactly every `n` samples? **Only the ones that
+complete a whole number of cycles in `n` samples.**
+
+Here is a small example with an **8-sample** loop:
+
+```
+1 cycle in 8 samples   → fits ✅   (ends where it started)
+ 0  ↗  ↑  ↘  0  ↘  ↓  ↗ | 0 ...
+
+2 cycles in 8 samples  → fits ✅
+ 0  ↑  0  ↓  0  ↑  0  ↓ | 0 ...
+
+1.5 cycles in 8 samples → doesn't fit ❌
+ 0  ↑  ↘  ↓  ↗  ↑  ↘  ↓ | 0 ... ← ends at the bottom but the loop jumps
+                                  back to the start at 0, so it breaks
+```
+
+A sine that does 1.5 cycles ends **halfway through a cycle**. When the loop
+jumps back to the start, the wave would have to jump, so it can't be part of a
+cleanly repeating shape.
+
+With the real 100-sample buffer at 44,100 samples per second:
+
+| Cycles per 100 samples | Frequency  | Fits the loop?  |
+|------------------------|------------|-----------------|
+| 1                      | 441 Hz     | ✅ 1st harmonic |
+| 1.5                    | 661.5 Hz   | ❌              |
+| 2                      | 882 Hz     | ✅ 2nd harmonic |
+| 2.5                    | 1102.5 Hz  | ❌              |
+| 3                      | 1323 Hz    | ✅ 3rd harmonic |
+| 4                      | 1764 Hz    | ✅ 4th harmonic |
+
+**The `n`-sample loop does the same job as the string's clamped ends.** Both
+only allow whole-number multiples.
+
+The buffer is the ripple's round trip, so the length rule works the same way
+too. Halving the buffer is exactly like pressing the 12th fret:
+
+| Buffer length `n`     | Round trip time | Frequency |
+|-----------------------|-----------------|-----------|
+| 400 samples           | 9.1 ms          | ~110 Hz   |
+| 200 samples (half)    | 4.5 ms          | ~220 Hz   |
+| 100 samples (quarter) | 2.3 ms          | ~441 Hz   |
+
+#### Where the random noise fits in
+
+Any shape can be built by adding together the allowed sine waves at different
+strengths. For example:
+
+- **Square wave** = 1× + ⅓ of 3× + ⅕ of 5× + … (odd harmonics only, a hollow,
+  clarinet-like sound)
+- **Sawtooth wave** = 1× + ½ of 2× + ⅓ of 3× + … (all harmonics, a bright,
+  brassy sound)
+- **Random noise in the loop** = 1×, 2×, 3×, 4×… each at a **random strength**
+
+So the noise doesn't decide *which* frequencies are present; the loop length
+already decided that. The noise only decides **how loud each harmonic starts**.
+That's why every run sounds slightly different (a different random pluck) but
+is always in tune.
+
+#### Instruments that don't follow this rule
+
+Some instruments vibrate in patterns that **don't** fit whole numbers:
+
+| Instrument                          | Vibration patterns (relative to the lowest)          |
+|-------------------------------------|------------------------------------------------------|
+| **String** (guitar, piano, violin)  | 1, **2**, **3**, **4**, **5**, 6…                    |
+| **Drum head** (ideal round membrane)| 1, **1.59**, **2.14**, **2.30**, **2.65**, 2.92…     |
+| **Bell**                            | irregular, e.g. 0.5, 1, 1.2, 1.5, 2, 2.5…            |
+
+When the frequencies are whole-number multiples, they **line up** and your
+brain merges them into one clear note. When they're at odd ratios like 1.59 or
+2.14, they don't line up. Your brain hears a cluster of tones, which makes the
+sound **clangy (bell)** or **thuddy without a clear note (drum)**.
+
+#### Why the drum variant sounds like a drum
+
+The **drum variant** (see [Settings to try](#settings-to-try)) randomly flips
+the sign of each new sample:
+
+```go
+if rand.Float64() < 0.5 {
+	avg = -avg
+}
+```
+
+Now the buffer **no longer comes back as a smoothed copy of itself** each
+cycle. The shape keeps getting scrambled, so the clean repeat is broken.
+Without a clean repeat, the energy isn't confined to 441, 882, 1323… anymore.
+It spreads across frequencies at irregular spacing, just like a drum head.
+Same algorithm, one changed line, and **the pitch disappears and you get a
+thud.**
 
 ### 3. High frequencies fade faster than low ones
 
