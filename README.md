@@ -564,6 +564,75 @@ already decided that. The noise only decides **how loud each harmonic starts**.
 That's why every run sounds slightly different (a different random pluck) but
 is always in tune.
 
+#### Which frequencies vs. how strong: loop length vs. noise
+
+There are two separate questions about any sound:
+
+1. **Which frequencies are in it?**
+2. **How strong is each of them?**
+
+In Karplus-Strong, **the loop length answers question 1**, and **the noise
+answers question 2**.
+
+##### The loop length: which frequencies can exist
+
+Whatever you put in the 100-slot buffer, the output **repeats every 100
+samples**. That's forced by the loop, not by the values.
+
+A wave that repeats every 100 samples can only contain frequencies that also
+repeat every 100 samples. Those are the ones that complete a whole number of
+cycles in 100 samples:
+
+| Cycles in 100 samples | Frequency | Possible?                                      |
+|-----------------------|-----------|------------------------------------------------|
+| 1                     | 441 Hz    | ✅                                             |
+| 2                     | 882 Hz    | ✅                                             |
+| 3                     | 1,323 Hz  | ✅                                             |
+| 1.5                   | 661.5 Hz  | ❌ it would end mid-cycle when the loop restarts |
+| any other fraction    | …         | ❌                                             |
+
+So **before you put a single value into the buffer**, you already know the
+only possible frequencies are 441, 882, 1,323, 1,764 Hz and so on. No choice of
+values can produce, say, 600 Hz, because a 600 Hz wave doesn't repeat every
+100 samples.
+
+##### The noise: how strong each frequency is
+
+What the values *do* decide is the **mix**: how much of each allowed frequency
+is in the sound.
+
+Here are three different buffers of the same length:
+
+| What's in the buffer              | 441 Hz | 882 Hz | 1,323 Hz | 1,764 Hz | Sounds like                           |
+|-----------------------------------|--------|--------|----------|----------|---------------------------------------|
+| A smooth sine wave (one cycle)    | strong | none   | none     | none     | a pure, flute-like tone               |
+| A square wave (half +1, half −1)  | strong | none   | ⅓        | none     | hollow, clarinet-like                 |
+| Random noise                      | random | random | random   | random   | bright pluck with all harmonics       |
+
+All three have the **same pitch, 441 Hz**, because all three repeat every 100
+samples. They only differ in **tone**, because each has a different mix of the
+same allowed frequencies.
+
+Random noise is a good starting point because it has **some of every allowed
+harmonic**. The averaging filter then shapes that mix over time, removing the
+high harmonics first.
+
+##### A guitar works the same way
+
+- **The string's length (and tension)** decides which frequencies it can
+  vibrate at: 110, 220, 330 Hz… for the A string. That's the loop length.
+- **How you pluck it** decides how strong each one is: with a finger or a pick,
+  near the bridge or near the neck. That's the noise.
+
+However you pluck the A string, it never plays 150 Hz. You can only change *how
+it sounds* at 110 Hz.
+
+##### In one sentence
+
+The loop length sets **the list of possible frequencies** (the menu). The
+noise picks **how much of each** goes into the sound (the order). It can only
+choose from that list, never add new frequencies.
+
 #### Instruments that don't follow this rule
 
 Some instruments vibrate in patterns that **don't** fit whole numbers:
