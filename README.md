@@ -50,6 +50,93 @@ from it. In practice the two words are usually used interchangeably.
 
 ---
 
+## Background: what does one value in the WAV file represent?
+
+A single value isn't a short sound. **Each value is the position of the speaker
+cone at one instant**: how far it's pushed out or pulled in at that moment.
+Equivalently, it's how much the air pressure is above or below normal at that
+moment.
+
+- `+1.0`: cone pushed out as far as it goes (air squeezed together)
+- `0.0`: cone at rest (normal air pressure)
+- `-1.0`: cone pulled in as far as it goes (air thinned out)
+
+A single number has **no frequency and no duration**. It's one dot on a graph.
+
+### Sound only appears from many values in a row
+
+The speaker moves to a new position 44,100 times per second. **Moving back and
+forth is what makes sound**, and the frequency comes from how quickly that
+back-and-forth repeats over many values.
+
+Here is a 441 Hz tone, sampled 44,100 times per second. One full vibration
+takes 100 values:
+
+```
+value
+ +1 |        ●●●●
+    |     ●●      ●●
+    |   ●            ●
+  0 |●-----------------●-----------------●----  time →
+    |                    ●            ●
+    |                      ●●      ●●
+ -1 |                         ●●●●
+     ◄──────── one vibration = 100 samples = 2.27 ms ────────►
+```
+
+- **Sample 0** = 0.0 (cone at rest)
+- **Sample 25** = +1.0 (pushed out fully)
+- **Sample 50** = 0.0 (back at rest)
+- **Sample 75** = -1.0 (pulled in fully)
+- **Sample 100**: the same shape starts again
+
+None of these values "contains" 441 Hz. **The pitch exists only in the
+pattern**: the cone goes out and back 441 times per second.
+
+### An analogy: frames of a film
+
+| Film                                              | Audio                                              |
+|---------------------------------------------------|----------------------------------------------------|
+| One frame = a still picture                       | One sample = one cone position                     |
+| Motion appears only when frames play in sequence  | Sound appears only when samples play in sequence   |
+| 24 frames per second                              | 44,100 samples per second                          |
+
+A single frame of a running horse doesn't move. A single sample doesn't sound.
+
+### How the value becomes sound, and back
+
+```
+Recording:  air pressure → microphone membrane moves → voltage → number in the file
+Playback:   number in the file → voltage → speaker cone moves → air pressure → your ear
+```
+
+Recording measures the membrane's position 44,100 times per second and writes
+down each number. Playback does the reverse: it pushes the cone to each
+recorded position in turn.
+
+### What this means for the Karplus-Strong buffer
+
+The buffer holds **one vibration's worth of cone positions**: the *shape* of
+one cycle.
+
+- At the start it's random noise, so the cone jerks between random positions.
+  But the same jerky shape repeats every `n` samples, and that repetition is
+  the pitch.
+- With each pass the averaging smooths the shape, so the cone's movement
+  becomes gentle and wave-like.
+
+Think of the buffer as a **drawing of one wave cycle**, and the loop as tracing
+that drawing over and over while slowly smoothing it.
+
+### Why 44,100 values per second?
+
+To represent a vibration you need **at least two samples per cycle**, one up
+and one down. At 44,100 samples per second the highest frequency you can
+capture is therefore 22,050 Hz, just above the limit of human hearing (about
+20,000 Hz). That's why CDs use 44.1 kHz.
+
+---
+
 ## The Karplus-Strong algorithm in simple words
 
 Picture a guitar string. When you pluck it, it starts out vibrating
