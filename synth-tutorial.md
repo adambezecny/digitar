@@ -267,7 +267,10 @@ Two clean-up steps keep the output well-behaved:
 - **Remove the DC offset.** If the random burst happens to be mostly positive,
   the whole waveform sits above zero. That wastes volume range and can cause
   clicks. Subtracting the average re-centres it on zero.
-- **Normalize.** Scale everything so that the loudest sample is exactly ±1.
+- **Normalize.** Scale everything so that the largest sample (the highest
+  peak, positive or negative) is exactly ±1. A sample is a cone position, not
+  a loudness (see [README.md](README.md)), but making the peaks as big as the
+  format allows gives the loudest result that doesn't clip.
 
 ```go
 // synth/processing.go
@@ -292,7 +295,8 @@ func RemoveDC(samples []float64) []float64 {
 	return samples
 }
 
-// Normalize scales the samples so that the loudest one is exactly ±1.
+// Normalize scales the samples so that the largest one (the highest peak,
+// positive or negative) is exactly ±1.
 // It modifies the slice in place and returns it.
 func Normalize(samples []float64) []float64 {
 	var peak float64

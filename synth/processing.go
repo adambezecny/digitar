@@ -19,7 +19,8 @@ func RemoveDC(samples []float64) []float64 {
 	return samples
 }
 
-// Normalize scales the samples so that the loudest one is exactly ±1.
+// Normalize scales the samples so that the largest one (the highest peak,
+// positive or negative) is exactly ±1.
 // It modifies the slice in place and returns it.
 func Normalize(samples []float64) []float64 {
 	var peak float64

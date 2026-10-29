@@ -177,8 +177,15 @@ same in reverse: it converts each format back to -1 to 1.
 
 #### What happens if a value is bigger than 1
 
-The 16-bit range ends at 32,767, so there's nothing louder to write.
-`writeWAV` **clips** the value: 1.7 becomes 1.0.
+Remember that each value is a cone **position**, not a loudness. Loudness
+comes from **how far the cone swings** back and forth over many samples (the
+size of the wave's peaks, called its *amplitude*). A louder sound needs bigger
+swings.
+
+The 16-bit range ends at 32,767, which is **the farthest out the format can
+describe the cone being pushed**. If a wave's peaks would need a position
+beyond that, there's no number to write, so `writeWAV` **clips** the value:
+1.7 becomes 1.0.
 
 ```
 what you wanted:     what gets written:
@@ -192,8 +199,8 @@ crackly noise of an overdriven speaker.
 
 This is why the synthesizer in [synth-tutorial.md](synth-tutorial.md) calls
 `Normalize` before saving. Mixing six strings can easily add up to values
-around 4 or 5. `Normalize` scales the whole song down so its loudest moment is
-exactly 1.0, which keeps everything in range without clipping.
+around 4 or 5. `Normalize` scales the whole song down so its largest value (its highest peak)
+is exactly 1.0, which keeps everything in range without clipping.
 
 32-bit float WAV files are the one exception. They can store values above 1.0,
 so nothing is lost in the file itself, but they'll still be clipped when played
