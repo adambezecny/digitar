@@ -135,6 +135,70 @@ and one down. At 44,100 samples per second the highest frequency you can
 capture is therefore 22,050 Hz, just above the limit of human hearing (about
 20,000 Hz). That's why CDs use 44.1 kHz.
 
+### Can a WAV file store only values between -1 and 1?
+
+Not exactly. **The file itself stores whole numbers. The range -1 to 1 is a
+convention in the code**, and `writeWAV` converts it to those whole numbers
+when it saves.
+
+The WAV files written here are **16-bit**, so each sample is a whole number
+from **-32,768 to 32,767**. The code works in -1.0 to 1.0 because that's
+easier, and `writeWAV` scales each value right before writing it:
+
+```go
+s = math.Max(-1, math.Min(1, s))     // 1. clip to [-1, 1]
+binary.Write(f, le, int16(s*32767)) // 2. scale to [-32767, 32767]
+```
+
+| Value in code | Number written to the file |
+|---------------|----------------------------|
+| 1.0           | 32,767                     |
+| 0.5           | 16,383                     |
+| 0.0           | 0                          |
+| -1.0          | -32,767                    |
+
+So -1 to 1 just means "from fully in to fully out", whatever the file's
+number range is.
+
+#### Why -1 to 1 is convenient
+
+WAV files come in different **bit depths**, each with its own number range:
+
+| Bit depth       | Range in the file                     |
+|-----------------|---------------------------------------|
+| 8-bit           | 0 to 255 (silence is 128)             |
+| 16-bit (CD)     | -32,768 to 32,767                     |
+| 24-bit (studio) | -8,388,608 to 8,388,607               |
+| 32-bit float    | decimal numbers, normally -1.0 to 1.0 |
+
+Working in -1 to 1 means the synthesis code doesn't care which format you save
+in. Only the final conversion changes. `ReadWAV` in `audio/wav.go` does the
+same in reverse: it converts each format back to -1 to 1.
+
+#### What happens if a value is bigger than 1
+
+The 16-bit range ends at 32,767, so there's nothing louder to write.
+`writeWAV` **clips** the value: 1.7 becomes 1.0.
+
+```
+what you wanted:     what gets written:
+      ●●                ───────── ← flat top at the limit
+    ●    ●             ●         ●
+  ●        ●         ●             ●
+```
+
+The wave's peaks get flattened. Clipping sounds like harsh **distortion**, the
+crackly noise of an overdriven speaker.
+
+This is why the synthesizer in [synth-tutorial.md](synth-tutorial.md) calls
+`Normalize` before saving. Mixing six strings can easily add up to values
+around 4 or 5. `Normalize` scales the whole song down so its loudest moment is
+exactly 1.0, which keeps everything in range without clipping.
+
+32-bit float WAV files are the one exception. They can store values above 1.0,
+so nothing is lost in the file itself, but they'll still be clipped when played
+through a speaker.
+
 ---
 
 ## The Karplus-Strong algorithm in simple words
