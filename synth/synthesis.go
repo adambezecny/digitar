@@ -94,15 +94,40 @@ func (s *Synthesizer) Vibrate(frequency Hertz, duration time.Duration, damping f
 
 // Overlay mixes sounds together, starting each one delay later than the
 // previous one. The sounds may have different lengths.
+//
+// This is how a chord is built: one sound per string, mixed into one.
+// delay is the strum speed: 0 plucks all strings at the same moment,
+// 40 ms is a slow strum where the strings come in one after another.
+//
+// Example with a delay of 2 samples:
+//
+//	position:   0   1   2   3   4   5
+//	sounds[0]:  1   1   1   1
+//	sounds[1]:          2   2   2
+//	sounds[2]:                  3   3
+//	result:     1   1   3   3   5   3
+//
+// The result is not normalized and can go beyond ±1 (six strings that each
+// reach 1.0 can add up to about 6). That's intended: a chord should be louder
+// than a single note. Normalize runs once on the whole song before saving.
 func (s *Synthesizer) Overlay(sounds [][]float64, delay time.Duration) []float64 {
+	// The code works in samples, not time: at 44,100 Hz, 40 ms = 1,764 samples.
 	delaySamples := NumSamples(delay, s.SampleRate)
 
+	// Sound i starts at i*delaySamples and lasts len(sound) samples. The result
+	// must be long enough for whichever sound ends last, which isn't always the
+	// last one to start, because the sounds can have different lengths.
 	numSamples := 0
 	for i, sound := range sounds {
 		numSamples = max(numSamples, i*delaySamples+len(sound))
 	}
 
+	// make fills the slice with zeros: silence, the speaker cone at rest.
 	samples := make([]float64, numSamples)
+
+	// Add each sound at its starting position. Adding is how mixing works:
+	// each sound wants to move the cone by some amount, and when sounds play
+	// together the cone moves by the sum of all of them.
 	for i, sound := range sounds {
 		offset := i * delaySamples
 		for j, value := range sound {
